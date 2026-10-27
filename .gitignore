@@ -1,0 +1,6 @@
+node_modules/
+.env
+.example-account.json
+conformance-result.json
+conformance-result.md
+*.log
