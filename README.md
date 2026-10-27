@@ -26,6 +26,12 @@ No account needed: if `NEAR_ACCOUNT_ID`/`NEAR_PRIVATE_KEY` are unset, a throwawa
 | `npm run env-switch` | Same code against `ENV=TIDEPOOL` (testnet) or `ENV=ONECLICK` (mainnet `https://1click.chaindefuser.com`, dry quote only) |
 | `npm run failure-cases [errors\|partial\|expired]` | Validation errors, partial deposit → `REFUNDED (PARTIAL_DEPOSIT)`, expired quote → `REFUNDED (DEADLINE_PASSED)` |
 | `npm run evm-deposit` | Cross-chain: test USDC on Base/Arbitrum/Ethereum Sepolia → wNEAR on NEAR testnet. Needs `EVM_PRIVATE_KEY` (testnet-only) with ~0.001 Sepolia gas ETH; the script drips test USDC itself. `WITHDRAW=1` adds the return leg (wNEAR → USDC paid out on the EVM chain) |
+| `npm run signed-intent` | `/v0/generate-intent` → sign NEP-413 → `/v0/submit-intent` → SUCCESS |
+| `npm run app-fees` | Quote with `appFees` (100 bps) and check the fee recipient's verifier balance |
+| `npm run any-input` | `ANY_INPUT` quote, two deposits, `/v0/any-input/withdrawals` |
+| `npm run auth-account` | `/v0/auth/authenticate` (NEP-413) → refresh → `/v0/account/balances` and `/history` |
+| `npm run orders` | Limit order: create → fund → FILLED; far limit → cancel → refund |
+| `npm run memo-deposit` | `depositMode: MEMO`: `ft_transfer` with memo to the shared address → SUCCESS |
 | `npm run conformance` | Live check of Tidepool vs the official 1Click OpenAPI (status codes + required fields) |
 
 Switching to production is one line: the base URL. `OpenAPI.BASE = 'https://1click.chaindefuser.com'` in the official SDK, or `ENV=ONECLICK` here — plus mainnet asset ids.
@@ -91,6 +97,17 @@ Settlement tx: https://testnet.nearblocks.io/txns/CHKkLCviwnZXUK7By7ASx8znfvP1zu
 | Withdraw: 4.40 USDC payout, Base Sepolia | [0x61d98633…73e8](https://sepolia.basescan.org/tx/0x61d98633e491db258ca9a18340e9d4e4f6e159f185e5269063aa7be6865a73e8) |
 
 Deposit to SUCCESS took about 16 s; the withdrawal took about 12 s. The faucet allows one drip per address per hour (later calls return 429, which the script logs and skips).
+
+## Feature runs (production, 2026-10-27)
+
+| Script | Transactions |
+| --- | --- |
+| signed-intent | [submit-intent](https://testnet.nearblocks.io/txns/CstqKiww5T6pAWrnX8wYuYaH2BrCL1oMnvsbbDidpC5W) · [settle](https://testnet.nearblocks.io/txns/nev45xZCcWRLsJajoxsPn8FMnFyVzJUSUvMptnqXv8L) |
+| app-fees | [deposit](https://testnet.nearblocks.io/txns/9hdUqNNbpx3n6KuURsCVAY7VC1uweDfLAL9N1dTCA9aR) · [swap + fee](https://testnet.nearblocks.io/txns/EpWHKRHMp9DTyexewL5ECoMikHvG3LLLdj3YZjnHuETJ); recipient got exactly 1% |
+| any-input | deposits [1](https://testnet.nearblocks.io/txns/31QtQkNLeZMNVEF8kARqLyqY4TrL3iaMzP2MLw8C97zt), [2](https://testnet.nearblocks.io/txns/Aw2dPXQA5SgXHpDev4Tu9xpm26xFvCrfnrjV4UAvzSej) · withdrawals [1](https://testnet.nearblocks.io/txns/5JoRTtEXkMmU6oUeU9UJUWZzVq1ytdhrbgMXhi8xdd12), [2](https://testnet.nearblocks.io/txns/4bQxqkuzSzjMXMfT4qtXwXG8xkUNqHAPv8sHiZmadtJt) |
+| orders | [fund](https://testnet.nearblocks.io/txns/54754tH72VJS1Nyv8pGHLurRS4i66ySgy981cYnHsewB) · [fill payout](https://testnet.nearblocks.io/txns/4SBBksycbKuGHT2VcKJeeYjE3bbjWmiWmkxPZovWzZTH) · [cancel refund](https://testnet.nearblocks.io/txns/Ae4R1hj5McG9M3skVSKod6M7jYU3Dg3LqooCLA2Brv7u) |
+| memo-deposit | [ft_transfer + memo](https://testnet.nearblocks.io/txns/DPtbS93K5HMsf6LFVDvkYFVr9bFWhkjW2Qu1uobamXjt) · [sweep](https://testnet.nearblocks.io/txns/BN14C2zHUNLmCDMkXKQomixbQFM5jTYoRqQQRWpZfqpa) · [settle](https://testnet.nearblocks.io/txns/7paKn4H7QJeQk1k5uxbpwsJXoik95xnRunffDR9NP5CB) |
+| auth-account | HTTP only: authenticate, refresh, balances, history 200; bad token 401 |
 
 ## License
 

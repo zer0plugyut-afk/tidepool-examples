@@ -15,17 +15,18 @@ export const say = (...a: unknown[]) => console.log(new Date().toISOString().sli
 export const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 export const units = (s: string, d: number) => { const [i, f = ''] = String(s).split('.'); return BigInt(i + (f + '0'.repeat(d)).slice(0, d)).toString(); };
 
-export async function call(method: string, path: string, body?: unknown) {
+export async function call(method: string, path: string, body?: unknown, extra?: Record<string, string>) {
   const headers: Record<string, string> = { 'content-type': 'application/json' };
   // Tidepool accepts any key; on mainnet 1Click set ONECLICK_JWT for fee-free quotes.
   const jwt = process.env.ONECLICK_JWT || process.env.TIDEPOOL_KEY;
   if (jwt) headers.authorization = `Bearer ${jwt}`;
+  Object.assign(headers, extra);
   const r = await fetch(API + path, { method, headers, body: body ? JSON.stringify(body) : undefined });
   return { status: r.status, body: (await r.json().catch(() => null)) as any };
 }
-export async function api(method: string, path: string, body?: unknown) {
-  const r = await call(method, path, body);
-  if (r.status >= 400) throw new Error(`${method} ${path} ${r.status}: ${r.body?.message}`);
+export async function api(method: string, path: string, body?: unknown, extra?: Record<string, string>) {
+  const r = await call(method, path, body, extra);
+  if (r.status >= 400) throw new Error(`${method} ${path} ${r.status}: ${r.body?.message ?? JSON.stringify(r.body?.errors)}`);
   return r.body;
 }
 
@@ -63,10 +64,10 @@ export async function depositIntents(acc: Awaited<ReturnType<typeof account>>, v
   return out.transaction.hash as string;
 }
 
-export async function poll(depositAddress: string, timeoutMs = 300_000, onChange?: (st: any) => void) {
+export async function poll(depositAddress: string, timeoutMs = 300_000, onChange?: (st: any) => void, memo?: string) {
   let last; const t0 = Date.now();
   while (Date.now() - t0 < timeoutMs) {
-    const r = await call('GET', `/v0/status?depositAddress=${depositAddress}`);
+    const r = await call('GET', `/v0/status?depositAddress=${depositAddress}${memo ? `&depositMemo=${memo}` : ''}`);
     if (r.status >= 500) { await sleep(3000); continue; } // transient (e.g. during a deploy): retry
     if (r.status >= 400) throw new Error(`status ${r.status}: ${r.body?.message}`);
     const st = r.body;
@@ -77,3 +78,36 @@ export async function poll(depositAddress: string, timeoutMs = 300_000, onChange
   throw new Error(`no final status after ${timeoutMs / 1000}s (last ${last})`);
 }
 export const explorer = (h: string) => `https://testnet.nearblocks.io/txns/${h}`;
+
+// ---- signing helpers (signed-intent flow, auth) ----
+export type Acc = Awaited<ReturnType<typeof account>>;
+export async function signNep413(acc: Acc, payload: { message: string; nonce: string; recipient: string }) {
+  const kp = await acc.keyStore.getKey('testnet', acc.accountId);
+  const s = (x: string) => { const b = Buffer.from(x); const l = Buffer.alloc(4); l.writeUInt32LE(b.length); return Buffer.concat([l, b]); };
+  const tag = Buffer.alloc(4); tag.writeUInt32LE(2 ** 31 + 413);
+  const hash = crypto.createHash('sha256').update(Buffer.concat([tag, s(payload.message), Buffer.from(payload.nonce, 'base64'), s(payload.recipient), Buffer.from([0])])).digest();
+  return { standard: 'nep413', payload, public_key: kp.getPublicKey().toString(), signature: 'ed25519:' + bs58.encode(Buffer.from(kp.sign(hash).signature)) };
+}
+// Named accounts must register their key on the verifier once (implicit accounts don't need to).
+export async function ensureVerifierKey(acc: Acc, verifier: string) {
+  const pk = (await acc.keyStore.getKey('testnet', acc.accountId)).getPublicKey().toString();
+  if (!(await acc.me.viewFunction({ contractId: verifier, methodName: 'has_public_key', args: { account_id: acc.accountId, public_key: pk } })))
+    await acc.me.functionCall({ contractId: verifier, methodName: 'add_public_key', args: { public_key: pk }, attachedDeposit: 1n, gas: 30_000_000_000_000n });
+}
+// 1Click signed-intent deposit: generate-intent -> sign -> submit-intent
+export async function fundViaSignedIntent(acc: Acc, depositAddress: string, headers?: Record<string, string>) {
+  const { intent } = await api('POST', '/v0/generate-intent', { type: 'swap_transfer', standard: 'nep413', signerId: acc.accountId, depositAddress }, headers);
+  const signedData = await signNep413(acc, intent.payload);
+  return api('POST', '/v0/submit-intent', { type: 'swap_transfer', signedData }, headers);
+}
+export async function login(acc: Acc) {
+  const nonce = crypto.randomBytes(32);
+  const message = JSON.stringify({ signer_id: acc.accountId, verifying_contract: 'tidepool-auth', deadline: new Date(Date.now() + 300_000).toISOString(), nonce: nonce.toString('base64'), intents: [] });
+  const signedData = await signNep413(acc, { message, nonce: nonce.toString('base64'), recipient: 'tidepool-auth' });
+  return api('POST', '/v0/auth/authenticate', { signedData });
+}
+export const verifierBalance = (acc: Acc, verifier: string, account_id: string, token_id: string) => acc.me.viewFunction({ contractId: verifier, methodName: 'mt_balance_of', args: { account_id, token_id } }) as Promise<string>;
+export async function faucet(accountId: string, mode = 'intents') {
+  try { const f = await api('POST', '/v0/faucet', { accountId, mode }); say('faucet', f.transactions.map((t: any) => t.explorerUrl).join(' ')); } catch (e: any) { say('faucet skipped:', e.message); }
+}
+export const deadlineIn = (ms: number) => new Date(Date.now() + ms).toISOString();
