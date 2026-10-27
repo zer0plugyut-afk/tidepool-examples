@@ -25,7 +25,7 @@ No account needed: if `NEAR_ACCOUNT_ID`/`NEAR_PRIVATE_KEY` are unset, a throwawa
 | `npm run first-swap` | faucet → dry quote → live quote → deposit (INTENTS) → submit → poll status → explorer links |
 | `npm run env-switch` | Same code against `ENV=TIDEPOOL` (testnet) or `ENV=ONECLICK` (mainnet `https://1click.chaindefuser.com`, dry quote only) |
 | `npm run failure-cases [errors\|partial\|expired]` | Validation errors, partial deposit → `REFUNDED (PARTIAL_DEPOSIT)`, expired quote → `REFUNDED (DEADLINE_PASSED)` |
-| `npm run evm-deposit` | Cross-chain: test USDC on Base/Arbitrum/Ethereum Sepolia → wNEAR on NEAR testnet. Needs `EVM_PRIVATE_KEY` (testnet-only) with Sepolia gas |
+| `npm run evm-deposit` | Cross-chain: test USDC on Base/Arbitrum/Ethereum Sepolia → wNEAR on NEAR testnet. Needs `EVM_PRIVATE_KEY` (testnet-only) with ~0.001 Sepolia gas ETH; the script drips test USDC itself. `WITHDRAW=1` adds the return leg (wNEAR → USDC paid out on the EVM chain) |
 | `npm run conformance` | Live check of Tidepool vs the official 1Click OpenAPI (status codes + required fields) |
 
 Switching to production is one line: the base URL. `OpenAPI.BASE = 'https://1click.chaindefuser.com'` in the official SDK, or `ENV=ONECLICK` here — plus mainnet asset ids.
@@ -65,7 +65,32 @@ Settlement tx: https://testnet.nearblocks.io/txns/CHKkLCviwnZXUK7By7ASx8znfvP1zu
 10:32:14    https://testnet.nearblocks.io/txns/2PiciG95eZH8L7CrvReHaYbru97Kb4QK8ZNfeGF6AQXY
 ```
 
-The EVM Sepolia script is typechecked but was not run for this README (it needs a funded Sepolia gas key); the routes themselves are verified in the [bridge guides](https://www.usetidepool.tech/docs/guides/bridges).
+### EVM Sepolia run (2026-10-27, Base Sepolia, production API)
+
+`WITHDRAW=1 EVM_PRIVATE_KEY=0x… EVM_CHAIN=base RECIPIENT=<near account> npm run evm-deposit` with demo wallet `0x38A9D3dB2Daf0f623c0b9777B64d3Fbc42e444Ad`:
+
+```
+10:38:01 faucet ok
+10:38:01 depositAddress 0xfF5f621914D5aD12A04F3aDF6a59881A6E22B3E9 amountIn 2000000
+10:38:02 deposit tx https://sepolia.basescan.org/tx/0x5ba48800252af24b01b667f826c6be36c51aaf7cd0e945c7581abb9e2af1cd4b
+10:38:02 status KNOWN_DEPOSIT_TX
+10:38:14 status PROCESSING
+10:38:18 status SUCCESS
+10:38:59 withdraw quote 1 wNEAR -> 4.402615 USDC on base
+10:39:01 intents deposit tx https://testnet.nearblocks.io/txns/9ofqgKHeDkdFMhxxukMR3zCvVUEYTNpoynS268QtSBBb
+10:39:11 withdraw result SUCCESS
+```
+
+| Leg | Transaction |
+|---|---|
+| 2 USDC deposit, Base Sepolia | [0x5ba48800…cd4b](https://sepolia.basescan.org/tx/0x5ba48800252af24b01b667f826c6be36c51aaf7cd0e945c7581abb9e2af1cd4b) |
+| Credit + swap to wNEAR, NEAR testnet | [3bM6orWu…5end](https://testnet.nearblocks.io/txns/3bM6orWu8yyUxQ4X9ZHtcWFAjpBV1yAzK6mjwXmo5end) |
+| Second run, deposit / settle | [0xa4f18…85bb](https://sepolia.basescan.org/tx/0xa4f1811b7f26b9fccf132365663d7baef4c821d5d7e0a4b6b2a39da333cf85bb) / [GdBWtxsE…bLn2](https://testnet.nearblocks.io/txns/GdBWtxsEUgMhAUNsQDbmcAxBnT377p1yhAKH67DybLn2) |
+| Withdraw: 1 wNEAR into verifier | [9ofqgKHe…SBBb](https://testnet.nearblocks.io/txns/9ofqgKHeDkdFMhxxukMR3zCvVUEYTNpoynS268QtSBBb) |
+| Withdraw: verifier settlement | [EC59veKh…bsYV](https://testnet.nearblocks.io/txns/EC59veKh6WCo4e5GvH6eEU5wGhZ7fhFJY85maoPwbsYV) |
+| Withdraw: 4.40 USDC payout, Base Sepolia | [0x61d98633…73e8](https://sepolia.basescan.org/tx/0x61d98633e491db258ca9a18340e9d4e4f6e159f185e5269063aa7be6865a73e8) |
+
+Deposit to SUCCESS took about 16 s; the withdrawal took about 12 s. The faucet allows one drip per address per hour (later calls return 429, which the script logs and skips).
 
 ## License
 
