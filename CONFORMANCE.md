@@ -64,6 +64,7 @@ Feature run (10:50 UTC), 25/31 before fixes:
 ## Known deviations (documented)
 
 - `confidentiality` / `CONFIDENTIAL_INTENTS`: accepted and ignored; settlement is public.
+- Settlement distinction: since [Oct 27, 2026](https://docs.near-intents.org/changelog/entries/2026-10-27-1click-confidential.md) mainnet 1Click settles every swap confidentially and `nearTxHashes` lists only shield/unshield; Tidepool testnet swaps settle publicly and include the swap hash, because confidential settlement runs on NEAR's private infrastructure, which isn't exposed to outside builders. Rely on `status`, not a swap hash.
 - `/v0/account/balances`: verifier balances only, `source: private`.
 - `/v0/any-input/withdrawals`: extra `tidepool.withdrawals` page array.
 - `/v0/orders`: filled once by the Tidepool maker (no partial fills); deadline 7 d default, 30 d max.
