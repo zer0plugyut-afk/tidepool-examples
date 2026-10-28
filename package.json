@@ -17,9 +17,11 @@
     "any-input": "tsx src/any-input.ts",
     "auth-account": "tsx src/auth-account.ts",
     "orders": "tsx src/orders.ts",
-    "memo-deposit": "tsx src/memo-deposit.ts"
+    "memo-deposit": "tsx src/memo-deposit.ts",
+    "sol-deposit": "tsx src/sol-deposit.ts"
   },
   "dependencies": {
+    "@solana/web3.js": "^1.98.0",
     "bs58": "^6.0.0",
     "near-api-js": "^5.1.1",
     "viem": "^2.21.0",
