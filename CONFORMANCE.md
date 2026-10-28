@@ -1,10 +1,10 @@
 # Tidepool conformance report
 
-- **Date:** 2026-10-27 (run at 11:04 UTC)
+- **Date:** 2026-10-28 (re-run at 05:50 UTC; previous full run 2026-10-27 11:04 UTC, also 31 / 31)
 - **Target:** https://www.usetidepool.tech (production)
 - **Spec:** official 1Click OpenAPI `https://1click.chaindefuser.com/docs/v0/openapi.yaml`, version 0.1.10
 - **Method:** `npm run conformance` ([src/conformance.ts](src/conformance.ts)) makes real calls with faucet test tokens and compares HTTP status codes and required fields / enums / primitive types of each success response against the spec schemas (`TokenResponse`, `QuoteResponse`, `GetExecutionStatusResponse`, `SubmitDepositTxResponse`, plus the auth, account, any-input, generate/submit-intent and orders schemas, with `oneOf` and `nullable` support).
-- **Live swap used:** deposit tx [AZe8w6tm…](https://testnet.nearblocks.io/txns/AZe8w6tmquxAdrakNqXLuwVG9i6ZJ2bFJZD5BFfmmzEd), settlement [F5xght3D…](https://testnet.nearblocks.io/txns/F5xght3DW89hML6NZYu9vmCJ43GnriJDZFNVabQ4RYwQ)
+- **Live swap used:** deposit tx [9guTLzzQ…](https://testnet.nearblocks.io/txns/9guTLzzQNW6rmUjrq8DJ2vDzSXFPrK6QagukkV1f4edg), settlement [CujXrc1m…](https://testnet.nearblocks.io/txns/CujXrc1mdVRq2SwmoWLEwT9R9X9ZLfEpT7vPnkx9WcfN)
 
 ## Result: 31 / 31 pass
 
