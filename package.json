@@ -19,9 +19,11 @@
     "orders": "tsx src/orders.ts",
     "memo-deposit": "tsx src/memo-deposit.ts",
     "sol-deposit": "tsx src/sol-deposit.ts",
-    "stellar-deposit": "tsx src/stellar-deposit.ts"
+    "stellar-deposit": "tsx src/stellar-deposit.ts",
+    "sui-deposit": "tsx src/sui-deposit.ts"
   },
   "dependencies": {
+    "@mysten/sui": "^1.45.2",
     "@solana/web3.js": "^1.98.0",
     "@stellar/stellar-base": "^15.0.0",
     "bs58": "^6.0.0",
