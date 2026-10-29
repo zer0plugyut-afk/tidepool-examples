@@ -20,14 +20,18 @@
     "memo-deposit": "tsx src/memo-deposit.ts",
     "sol-deposit": "tsx src/sol-deposit.ts",
     "stellar-deposit": "tsx src/stellar-deposit.ts",
-    "sui-deposit": "tsx src/sui-deposit.ts"
+    "sui-deposit": "tsx src/sui-deposit.ts",
+    "btc-deposit": "tsx src/btc-deposit.ts"
   },
   "dependencies": {
     "@mysten/sui": "^1.45.2",
     "@solana/web3.js": "^1.98.0",
     "@stellar/stellar-base": "^15.0.0",
+    "bitcoinjs-lib": "^7.0.5",
     "bs58": "^6.0.0",
+    "ecpair": "^3.0.2",
     "near-api-js": "^5.1.1",
+    "tiny-secp256k1": "^2.2.5",
     "viem": "^2.21.0",
     "yaml": "^2.6.0"
   },
